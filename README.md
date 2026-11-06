@@ -111,8 +111,16 @@ grep -rl "$CLOCKED_API_KEY" .open-next freebuff-sites-build || echo "clean"
 
 ## Development history
 
-This repository was initialised from the finished tree; the commits group the work by layer rather
-than reflecting the original timeline. Later commits are real.
+The repository was initialised from a working tree rather than replayed click by click, so the
+history is grouped by layer. Each commit is a coherent, reviewable slice:
+
+| Commit | Contains |
+| --- | --- |
+| *Clocked transport, gate contracts, reversible masking* | `lib/clocked.ts` (server-only client, idempotency keys, 429/5xx backoff, credit headers), the gate types in `lib/gates.ts`, and the offset-safe masker in `lib/mask.ts`. |
+| *Triage workspace around a strictly sequential audit* | `components/` and the audit state machine: one gate at a time, animated scan, evidence highlighting, the output-gated copy button. |
+| *Password gate and public landing page* | `middleware.ts`, the HMAC session in `lib/session.ts`, `/login`, the env-keyed `/p/<slug>` route, and the promotional page. |
+
+`git log --oneline` shows the same three steps. Work after that point is committed as it lands.
 
 ## Limitations
 
