@@ -1,0 +1,27 @@
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Local secrets — never commit
+.env
+.env.local
+.env.*.local
+.dev.vars
+
+.DS_Store
+npm-debug.log*
+/freebuff-sites-build/
+/.open-next/
+/.wrangler/
+
+# Local secret source for `npm run dev` (loaded via node --env-file).
+# Kept out of .env* on purpose: the Workers build inlines any .env* values
+# into .open-next/cloudflare/next-env.mjs, which ships in the deployed bundle.
+.secrets.local
+
+# Deployment bookkeeping (contains the live preview URL) and capture scratch
+sites.json
+/public/shots/full.png
