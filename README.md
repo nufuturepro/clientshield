@@ -67,6 +67,10 @@ cp .env.example .secrets.local     # then fill in the values
 npm run dev
 ```
 
+A fresh clone has **no root page by design** (see [Repository scope](#repository-scope)). Until you set
+`PROTOTYPE_SLUG`, `/` 404s and so does every prototype URL — that is the expected state, not a broken
+install. Set the slug, restart `npm run dev`, and open `http://localhost:3000/p/<your-slug>`.
+
 ### Environment
 
 Secrets live in `.secrets.local`, which is gitignored. Deliberately **not** in a `.env*` file: the
@@ -104,10 +108,11 @@ both use them.
 The app builds for Cloudflare Workers through [`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare).
 
 ```bash
-npx opennextjs-cloudflare build --config <wrangler-config> --openNextConfigPath <open-next-config>
+npx opennextjs-cloudflare build --config freebuff.wrangler.jsonc --openNextConfigPath freebuff.open-next.config.ts
 ```
 
-`CLOCKED_API_KEY` and `PROTOTYPE_SLUG` must be set as platform secrets, not build variables. There
+Both configs are checked in, so the command runs from a clean clone. `CLOCKED_API_KEY` and
+`PROTOTYPE_SLUG` must be set as platform secrets, not build variables. There
 is no password secret: opening the prototype URL is what grants access. Verify after deploying that the key does not appear in the build output:
 
 ```bash
@@ -121,11 +126,16 @@ history is grouped by layer. Each commit is a coherent, reviewable slice:
 
 | Commit | Contains |
 | --- | --- |
-| *Clocked transport, gate contracts, reversible masking* | `lib/clocked.ts` (server-only client, idempotency keys, 429/5xx backoff, credit headers), the gate types in `lib/gates.ts`, and the offset-safe masker in `lib/mask.ts`. |
-| *Triage workspace around a strictly sequential audit* | `components/` and the audit state machine: one gate at a time, animated scan, evidence highlighting, the output-gated copy button. |
-| *Password gate and public landing page* | `middleware.ts`, the HMAC session in `lib/session.ts`, `/login`, the env-keyed `/p/<slug>` route, and the promotional page. |
+| *Add Clocked transport, gate contracts, and reversible masking* | `lib/clocked.ts` (server-only client, idempotency keys, 429/5xx backoff, credit headers), the gate types in `lib/gates.ts`, and the offset-safe masker in `lib/mask.ts`. |
+| *Build the triage workspace around a strictly sequential audit* | `components/` and the audit state machine: one gate at a time, animated scan, evidence highlighting, the output-gated copy button. |
+| *Gate the prototype behind a password and add a public landing page* | First access model: `middleware.ts`, the HMAC session in `lib/session.ts`, `/login`, and the env-keyed `/p/<slug>` route. |
+| *Serve the working prototype from an env-keyed slug behind the promo page* | The same shell, with the promotional page in front of it. |
+| *Open the prototype with its link instead of a password* | Drops `/login` and the password session; opening the slug URL now issues the 12-hour pass. |
+| *Keep the marketing front page out of the public repo* | Untracks the landing page and moves its styles out of `app/globals.css`, leaving this repository the application only. |
 
-`git log --oneline` shows the same three steps. Work after that point is committed as it lands.
+`git log --oneline` shows the same six steps. The access-model work is a recorded decision rather than
+an amended history: the password came first, the link replaced it, and the promo page left the repo
+once it was clear which parts were the submission and which were the advert.
 
 ## Limitations
 
