@@ -84,12 +84,20 @@ would bake the API key into the artifact and shadow the platform secret.
 
 | Route | Behaviour |
 | --- | --- |
-| `/` | Public promotional page. No link to the prototype. |
+| `/` | Hosted demo's marketing page. **Not tracked here** — a fresh clone has no root page. |
 | `/p/<PROTOTYPE_SLUG>` | The working app. Issues a 12-hour signed pass; 404s on any other slug. |
 | `/api/clocked/<gate>` | Proxy to Clocked. 401 without the pass. |
 
 Because the slug comes from the environment, it is absent from the repository, the client bundle,
 and the promo page.
+
+### Repository scope
+
+This repository is the application, not the marketing site. The promotional landing page served at
+`/` in the hosted demo — `app/page.tsx` and `app/promo.css` — is deliberately untracked, so a clean
+clone has no root page. Build it, set `PROTOTYPE_SLUG`, and open `/p/<value>`; `/` will 404, which is
+expected. The screenshots under `public/shots/` stay tracked because this README and the hosted page
+both use them.
 
 ## Deployment
 
