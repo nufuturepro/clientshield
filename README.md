@@ -54,7 +54,7 @@ Decisions worth knowing:
   the *untouched* input into a segment list, so replacements can never shift later offsets.
 - **Gates are client-side policy.** The disabled copy button is a UI guarantee for a human operator,
   not an authorization boundary. If you expose this beyond a demo, put authentication in front of
-  `/api/clocked/*` — the bundled password gate does exactly that.
+  `/api/clocked/*` — the bundled slug pass does exactly that.
 - **Nothing is stored.** No database, no logs of client text. Exports are generated in the tab.
 
 ## Setup
@@ -75,9 +75,8 @@ would bake the API key into the artifact and shadow the platform secret.
 
 | Variable | Purpose |
 | --- | --- |
-| `CLOCKED_API_KEY` | Clocked account key. Server-side only. |
-| `DEMO_PASSWORD` | Password that unlocks the prototype and the proxy. Unset = gate disabled. |
-| `PROTOTYPE_SLUG` | URL segment the working app is served under (`/p/<value>`). Any other value 404s. |
+| `CLOCKED_API_KEY` | Clocked account key. Server-side only. Also the HMAC key for the prototype pass. |
+| `PROTOTYPE_SLUG` | URL segment the working app is served under (`/p/<value>`). Any other value 404s. This is the only access control there is. |
 
 `next.config.ts` loads `.secrets.local` during `next dev` only.
 
@@ -86,10 +85,8 @@ would bake the API key into the artifact and shadow the platform secret.
 | Route | Behaviour |
 | --- | --- |
 | `/` | Public promotional page. No link to the prototype. |
-| `/p/<PROTOTYPE_SLUG>` | The working app. Redirects to `/login` when signed out; 404s on any other slug. |
-| `/login` | Password form; sets a 12-hour HMAC-signed, HttpOnly session cookie. |
-| `/api/clocked/<gate>` | Proxy to Clocked. 401 without a session. |
-| `/api/auth/login` | Password check. |
+| `/p/<PROTOTYPE_SLUG>` | The working app. Issues a 12-hour signed pass; 404s on any other slug. |
+| `/api/clocked/<gate>` | Proxy to Clocked. 401 without the pass. |
 
 Because the slug comes from the environment, it is absent from the repository, the client bundle,
 and the promo page.
@@ -102,8 +99,8 @@ The app builds for Cloudflare Workers through [`@opennextjs/cloudflare`](https:/
 npx opennextjs-cloudflare build --config <wrangler-config> --openNextConfigPath <open-next-config>
 ```
 
-`CLOCKED_API_KEY`, `DEMO_PASSWORD` and `PROTOTYPE_SLUG` must be set as platform secrets, not build
-variables. Verify after deploying that the key does not appear in the build output:
+`CLOCKED_API_KEY` and `PROTOTYPE_SLUG` must be set as platform secrets, not build variables. There
+is no password secret: opening the prototype URL is what grants access. Verify after deploying that the key does not appear in the build output:
 
 ```bash
 grep -rl "$CLOCKED_API_KEY" .open-next freebuff-sites-build || echo "clean"
@@ -124,8 +121,9 @@ history is grouped by layer. Each commit is a coherent, reviewable slice:
 
 ## Limitations
 
-- The password gate authenticates an operator, not end users — one shared password, one 12-hour
-  session, no per-user accounts.
+- The slug is the only secret. Anyone holding the prototype link gets a working demo and can spend
+  Clocked credits, so treat the URL like the password it replaced, and unset `PROTOTYPE_SLUG` (or
+  undeploy) when the demo is over. There is no login page to revoke access from.
 - `looksLikeCode()` in `lib/code.ts` decides whether `/script` is worth calling. It is a regex
   heuristic: prose with a fenced code block will be sent to Inspect, and a bare one-liner may not be.
 - Clocked's injection model is sensitive to second-person requests. In testing, "Can you update the

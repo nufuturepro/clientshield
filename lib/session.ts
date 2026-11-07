@@ -1,17 +1,26 @@
 /**
- * Contest gate: password -> signed session cookie.
+ * Contest pass: opening the prototype's secret path issues a signed cookie.
+ *
+ * There is no login page and no password to type. The gate is the URL itself:
+ * only `/p/<PROTOTYPE_SLUG>` issues a pass, and the Clocked proxy refuses calls
+ * without one. So a judge opens one link and starts working, while a random
+ * `POST /api/clocked/pii` against the deployed Worker cannot spend credits.
  *
  * Everything here runs server-side only (route handlers and middleware), so the
- * password never reaches the browser and the cookie can't be forged without the
- * secret. Web Crypto is used so the same code works in Node and in Workers.
+ * signing key never reaches the browser and the cookie can't be forged without
+ * it. Web Crypto is used so the same code works in Node and in Workers.
  */
 
-export const SESSION_COOKIE = "cs_demo_session";
+export const PASS_COOKIE = "cs_demo_pass";
 const TTL_MS = 12 * 60 * 60 * 1000;
 
-function secret(): string | null {
-  // One variable is enough: rotating the password also invalidates old sessions.
-  const value = process.env.DEMO_SESSION_SECRET || process.env.DEMO_PASSWORD;
+/**
+ * Signed with the Clocked key, which is already server-only and always present.
+ * The slug is a fallback so a half-configured local run still works; either way
+ * the value never leaves the Worker.
+ */
+function signingKey(): string | null {
+  const value = process.env.CLOCKED_API_KEY || process.env.PROTOTYPE_SLUG;
   return value && value.length > 0 ? value : null;
 }
 
@@ -31,40 +40,25 @@ async function hmac(payload: string, key: string): Promise<string> {
   return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Compare digests so length and early bytes don't leak through timing. */
-async function digest(value: string): Promise<string> {
-  const hash = await crypto.subtle.digest("SHA-256", enc(value));
-  return Array.from(new Uint8Array(hash), (b) => b.toString(16).padStart(2, "0")).join("");
+/** No key configured at all: leave the proxy open rather than bricking local dev. */
+export function passGateEnabled(): boolean {
+  return signingKey() !== null;
 }
 
-export function demoLockEnabled(): boolean {
-  return secret() !== null;
-}
-
-export async function passwordOk(input: string): Promise<boolean> {
-  const expected = process.env.DEMO_PASSWORD;
-  const key = secret();
-  if (!expected || !key || !input) return false;
-  const [given, wanted] = await Promise.all([digest(input), digest(expected)]);
-  let diff = 0;
-  for (let i = 0; i < wanted.length; i++) diff |= given.charCodeAt(i) ^ wanted.charCodeAt(i);
-  return diff === 0;
-}
-
-export async function createSession(): Promise<{
+export async function issuePass(): Promise<{
   name: string;
   value: string;
   maxAge: number;
 }> {
-  const key = secret();
-  if (!key) throw new Error("DEMO_PASSWORD is not configured.");
+  const key = signingKey();
+  if (!key) throw new Error("No signing key: set CLOCKED_API_KEY or PROTOTYPE_SLUG.");
   const exp = Date.now() + TTL_MS;
   const value = `${exp}.${await hmac(String(exp), key)}`;
-  return { name: SESSION_COOKIE, value, maxAge: Math.floor(TTL_MS / 1000) };
+  return { name: PASS_COOKIE, value, maxAge: Math.floor(TTL_MS / 1000) };
 }
 
-export async function verifySession(value: string | undefined): Promise<boolean> {
-  const key = secret();
+export async function verifyPass(value: string | undefined): Promise<boolean> {
+  const key = signingKey();
   if (!key || !value) return false;
 
   const dot = value.indexOf(".");
@@ -80,4 +74,15 @@ export async function verifySession(value: string | undefined): Promise<boolean>
   let diff = 0;
   for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ sig.charCodeAt(i);
   return diff === 0;
+}
+
+/** Cookie options shared by the middleware and any future issuer. */
+export function passCookieOptions(maxAge: number) {
+  return {
+    httpOnly: true as const,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge,
+  };
 }

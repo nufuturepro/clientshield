@@ -50,6 +50,20 @@ export default function PromoPage() {
         </span>
         <span className="promo-wordmark">ClientShield</span>
         <span className="promo-badge">Clocked hackathon</span>
+        <a
+          className="promo-source"
+          href="https://github.com/nufuturepro/clientshield"
+          target="_blank"
+          rel="noreferrer"
+        >
+          <svg viewBox="0 0 16 16" aria-hidden="true" className="promo-source-icon">
+            <path
+              d="M8 1.4a6.6 6.6 0 0 0-2.1 12.9c.3.1.4-.1.4-.3v-1.2c-1.8.4-2.2-.9-2.2-.9-.3-.7-.7-.9-.7-.9-.6-.4 0-.4 0-.4.7.1 1 .7 1 .7.6 1 1.5.7 1.9.5.1-.4.2-.7.4-.9-1.4-.2-2.9-.7-2.9-3.2 0-.7.3-1.3.7-1.7-.1-.2-.3-.9.1-1.8 0 0 .5-.2 1.8.7a6.2 6.2 0 0 1 3.2 0c1.3-.9 1.8-.7 1.8-.7.4.9.2 1.6.1 1.8.4.4.7 1 .7 1.7 0 2.5-1.5 3-2.9 3.2.2.2.4.6.4 1.2v1.8c0 .2.1.4.4.3A6.6 6.6 0 0 0 8 1.4Z"
+              fill="currentColor"
+            />
+          </svg>
+          Source
+        </a>
       </header>
 
       <section className="promo-hero">
@@ -181,6 +195,15 @@ export default function PromoPage() {
         <span>ClientShield</span>
         <span className="promo-dot" aria-hidden="true" />
         <span>Local-first sanitization for client-facing studios</span>
+        <span className="promo-dot" aria-hidden="true" />
+        <a
+          className="promo-foot-link"
+          href="https://github.com/nufuturepro/clientshield"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Source on GitHub
+        </a>
       </footer>
     </main>
   );
